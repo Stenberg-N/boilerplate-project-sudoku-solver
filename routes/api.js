@@ -29,29 +29,31 @@ module.exports = function (app) {
         return res.json({ error: 'invalid coordinate' });
       }
 
-      const numValue = parseInt(value);
       if (!/^[1-9]$/.test(value)) {
         return res.json({ error: 'invalid value' });
       }
 
+      const numValue = parseInt(value);
+      const grid = solver.stringToGrid(puzzle);
+
       const conflict = [];
 
-      if (!solver.checkRowPlacement(puzzle, row, column, numValue)) {
+      if (!solver.checkRowPlacement(grid, row, column, numValue)) {
         conflict.push("row");
       }
 
-      if (!solver.checkColPlacement(puzzle, row, column, numValue)) {
+      if (!solver.checkColPlacement(grid, row, column, numValue)) {
         conflict.push("column");
       }
 
-      if (!solver.checkRegionPlacement(puzzle, row, column, numValue)) {
+      if (!solver.checkRegionPlacement(grid, row, column, numValue)) {
         conflict.push("region");
       }
 
       if (conflict.length > 0) {
-        res.json({ valid: false, conflict });
+        return res.json({ valid: false, conflict });
       } else {
-        res.json({ valid: true });
+        return res.json({ valid: true });
       }
 
     });
@@ -61,12 +63,28 @@ module.exports = function (app) {
       const { puzzle } = req.body;
 
       if (!puzzle) {
-        res.json({ error: 'required field missing' });
+        return res.json({ error: 'required field missing' });
+      }
+
+      if (puzzle.length !== 81 && /[^1-9.]/.test(puzzle)) {
+        return res.json({ error: 'puzzle string contains invalid characters and is not 81 characters long' });
+      }
+
+      if (puzzle.length !== 81) {
+        return res.json({ error: 'puzzle string should be 81 characters long' });
+      }
+
+      if (/[^1-9.]/.test(puzzle)) {
+        return res.json({ error: 'puzzle string contains invalid characters' });
       }
 
       const result = solver.solve(puzzle);
 
-      res.json(result);
+      if (!result) {
+        return res.json({ error: 'puzzle cannot be solved' });
+      }
+
+      return res.json(result);
 
     });
 };
